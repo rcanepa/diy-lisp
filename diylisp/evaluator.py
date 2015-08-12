@@ -21,7 +21,8 @@ def evaluate(ast, env):
         return env.lookup(ast)
 
     if is_list(ast):
-        form = ast[0]
+        form = get_form(ast)
+
         if form == "quote":
             return eval_quote(ast, env)
         if form == "atom":
@@ -34,8 +35,17 @@ def evaluate(ast, env):
             return eval_if(ast, env)
         if form == "define":
             return eval_define(ast, env)
+        if form == "lambda":
+            return eval_lambda(ast, env)
+        else:
+            return call(ast, env)
 
     return ast
+
+def get_form(ast):
+    if len(ast) == 0:
+        raise LispError("Call to empty list")
+    return ast[0]
 
 def eval_quote(ast, env):
     return ast[1]
@@ -89,3 +99,40 @@ def eval_define(ast, env):
 
     env.set(name, evaluate(ast[2], env))
     return name
+
+
+def eval_lambda(ast, env):
+    params = ast[1]
+
+    if not is_list(params):
+        raise LispError("First argument to `lambda` should be a list, got `{}`".format(unparse(params)))
+
+    if len(ast) != 3:
+        raise LispError("Wrong number of arguments to `lambda`: {}".format(len(ast)))
+
+    body = ast[2]
+
+    return Closure(env, params, body)
+
+def apply_fn(ast, env):
+    closure = ast[0]
+    args = [evaluate(exp, env) for exp in ast[1:]]
+
+    if len(args) != len(closure.params):
+        msg = "Got wrong number of arguments, expected {} got {}"
+        raise LispError(msg.format(len(closure.params), len(args)))
+
+    bound_arguments = dict(zip(closure.params, args))
+    call_env = closure.env.extend(bound_arguments)
+
+    return evaluate(closure.body, call_env)
+
+def call(ast, env):
+    form = ast[0]
+
+    if is_closure(form):
+        return apply_fn(ast, env)
+    if is_symbol(form) or is_list(form):
+        return evaluate([evaluate(form, env)] + ast[1:], env)
+    else:
+        raise LispError("Illegal function call: not a function: `{}`".format(unparse(ast)))
