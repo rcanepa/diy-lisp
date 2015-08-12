@@ -19,7 +19,7 @@ def parse(source):
     exp, rest = first_expression(source)
 
     if rest:
-        raise LispError("Expected EOF, got '{}'".format(rest))
+        raise LispError("Expected EOF, got `{}`".format(rest))
 
     exp = exp.strip()
 
