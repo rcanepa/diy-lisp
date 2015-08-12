@@ -17,6 +17,9 @@ in a day, after all.)
 def evaluate(ast, env):
     """Evaluate an Abstract Syntax Tree in the specified environment."""
 
+    if is_symbol(ast):
+        return env.lookup(ast)
+
     if is_list(ast):
         form = ast[0]
         if form == "quote":
@@ -29,6 +32,8 @@ def evaluate(ast, env):
             return eval_math(ast, env)
         if form == "if":
             return eval_if(ast, env)
+        if form == "define":
+            return eval_define(ast, env)
 
     return ast
 
@@ -74,3 +79,13 @@ def eval_if(ast, env):
     else:
         return evaluate(ast[3], env)
 
+def eval_define(ast, env):
+    if len(ast) != 3:
+        raise LispError("Wrong number of arguments to define statment: `{}`".format(unparse(ast)))
+
+    name = ast[1]
+    if not is_symbol(name):
+        raise LispError("Defined variable on non-symbol: `{}`".format(unparse(name)))
+
+    env.set(name, evaluate(ast[2], env))
+    return name
