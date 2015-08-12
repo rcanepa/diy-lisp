@@ -14,7 +14,27 @@ def parse(source):
     """Parse string representation of one *single* expression
     into the corresponding Abstract Syntax Tree."""
 
-    raise NotImplementedError("DIY")
+    source = remove_comments(source)
+
+    exp, rest = first_expression(source)
+
+    if rest:
+        raise LispError("Expected EOF, got '{}'".format(rest))
+
+    exp = exp.strip()
+
+    if exp in ["#f", "#t"]: 
+        return exp == "#t"
+    elif exp.isdigit():
+        return int(exp)
+    elif exp[0] == "'":
+        return ["quote", parse(exp[1:])]
+    elif exp[0] == "(":
+        end_index = find_matching_paren(exp)
+        exps = split_exps(exp[1:end_index])
+        return [parse(e) for e in exps]
+
+    return exp
 
 ##
 ## Below are a few useful utility functions. These should come in handy when 
