@@ -37,6 +37,14 @@ def evaluate(ast, env):
             return eval_define(ast, env)
         if form == "lambda":
             return eval_lambda(ast, env)
+        if form == "cons":
+            return eval_cons(ast, env)
+        if form == "head":
+            return eval_head(ast, env)
+        if form == "tail":
+            return eval_tail(ast, env)
+        if form == "empty":
+            return eval_empty(ast, env)
         else:
             return call(ast, env)
 
@@ -136,3 +144,39 @@ def call(ast, env):
         return evaluate([evaluate(form, env)] + ast[1:], env)
     else:
         raise LispError("Illegal function call: not a function: `{}`".format(unparse(ast)))
+
+def eval_cons(ast, env):
+    head = evaluate(ast[1], env)
+    tail = evaluate(ast[2], env)
+
+    return [head] + tail
+
+def eval_head(ast, env):
+    lst = evaluate(ast[1], env)
+
+    if not is_list(lst):
+        raise LispError("Cannot get `head` from non-list")
+
+    if len(lst) == 0:
+        raise LispError("Head of empty list")
+
+    return lst[0]
+
+def eval_tail(ast, env):
+    lst = evaluate(ast[1], env)
+
+    if not is_list(lst):
+        raise LispError("Cannot get `tail` from non-list")
+
+    if len(lst) == 0:
+        raise LispError("Tail of empty list")
+
+    return lst[1:]
+
+def eval_empty(ast, env):
+    lst = evaluate(ast[1], env)
+
+    if not is_list(lst):
+        raise LispError("Cannot check `empty` on non-list")
+
+    return len(lst) == 0
