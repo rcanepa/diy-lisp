@@ -27,6 +27,8 @@ def evaluate(ast, env):
             return eval_eq(ast, env)
         if is_math(form):
             return eval_math(ast, env)
+        if form == "if":
+            return eval_if(ast, env)
 
     return ast
 
@@ -64,4 +66,11 @@ def eval_math(ast, env):
 
     return math[op](arg1, arg2)
 
+def eval_if(ast, env):
+    pred = evaluate(ast[1], env)
+
+    if pred:
+        return evaluate(ast[2], env)
+    else:
+        return evaluate(ast[3], env)
 
