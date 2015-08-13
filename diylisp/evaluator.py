@@ -47,6 +47,10 @@ def evaluate(ast, env):
             return eval_empty(ast, env)
         if form == "cond":
             return eval_cond(ast, env)
+        if form == "let":
+            return eval_let(ast, env)
+        if form == "defn":
+            return eval_defn(ast, env)
         else:
             return call(ast, env)
 
@@ -201,3 +205,19 @@ def eval_cond(ast, env):
             return evaluate(then, env)
 
     return False
+
+def eval_let(ast, env):
+    bindings = ast[1]
+    body = ast[2]
+    for symbol, expression in bindings:
+        env = env.extend({symbol: evaluate(expression, env)})
+
+    return evaluate(body, env)
+
+def eval_defn(ast, env):
+    name = ast[1]
+    params = ast[2]
+    body = ast[3]
+
+    env.set(name, Closure(env, params, body))
+    return name
