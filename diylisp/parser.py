@@ -96,19 +96,17 @@ def first_expression(source):
     if source[0] == "'":
         exp, rest = first_expression(source[1:])
         return source[0] + exp, rest
+
     elif source[0] == '"':
-        if source == '""':
-            return source, ""
+        for n in range(1, len(source)):
+            if source[n] == '"' and source[n - 1] != '\\':
+                return source[:n + 1], source[n + 1:]
+        raise LispError("Unclosed string: {}".format(source)) 
 
-        match = re.search('[^\\\\]"', source[1:])
-        if match:
-            end = match.end()
-            return source[:end + 2], source[end + 2:]
-
-        raise LispError("Unclosed string: {}".format(source))
     elif source[0] == "(":
         last = find_matching_paren(source)
         return source[:last + 1], source[last + 1:]
+
     else:
         match = re.match(r"^[^\s)']+", source)
         end = match.end()
