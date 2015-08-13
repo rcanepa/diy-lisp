@@ -29,6 +29,8 @@ def parse(source):
         return int(exp)
     elif exp[0] == "'":
         return ["quote", parse(exp[1:])]
+    elif exp[0] == '"':
+        return String(exp[1:-1])
     elif exp[0] == "(":
         end_index = find_matching_paren(exp)
         exps = split_exps(exp[1:end_index])
@@ -94,6 +96,16 @@ def first_expression(source):
     if source[0] == "'":
         exp, rest = first_expression(source[1:])
         return source[0] + exp, rest
+    elif source[0] == '"':
+        if source == '""':
+            return source, ""
+
+        match = re.search('[^\\\\]"', source[1:])
+        if match:
+            end = match.end()
+            return source[:end + 2], source[end + 2:]
+
+        raise LispError("Unclosed string: {}".format(source))
     elif source[0] == "(":
         last = find_matching_paren(source)
         return source[:last + 1], source[last + 1:]

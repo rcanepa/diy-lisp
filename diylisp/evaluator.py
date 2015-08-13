@@ -45,6 +45,8 @@ def evaluate(ast, env):
             return eval_tail(ast, env)
         if form == "empty":
             return eval_empty(ast, env)
+        if form == "cond":
+            return eval_cond(ast, env)
         else:
             return call(ast, env)
 
@@ -149,10 +151,16 @@ def eval_cons(ast, env):
     head = evaluate(ast[1], env)
     tail = evaluate(ast[2], env)
 
+    if is_string(head) and is_string(tail):
+        return String(head.val + tail.val)
+
     return [head] + tail
 
 def eval_head(ast, env):
     lst = evaluate(ast[1], env)
+
+    if is_string(lst):
+        return String(lst.val[0])
 
     if not is_list(lst):
         raise LispError("Cannot get `head` from non-list")
@@ -165,6 +173,9 @@ def eval_head(ast, env):
 def eval_tail(ast, env):
     lst = evaluate(ast[1], env)
 
+    if is_string(lst):
+        return String(lst.val[1:])
+
     if not is_list(lst):
         raise LispError("Cannot get `tail` from non-list")
 
@@ -176,7 +187,17 @@ def eval_tail(ast, env):
 def eval_empty(ast, env):
     lst = evaluate(ast[1], env)
 
+    if is_string(lst):
+        return lst.val == ""
+
     if not is_list(lst):
         raise LispError("Cannot check `empty` on non-list")
 
     return len(lst) == 0
+
+def eval_cond(ast, env):
+    for cond, then in ast[1]:
+        if evaluate(cond, env):
+            return evaluate(then, env)
+
+    return False
