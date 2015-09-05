@@ -57,14 +57,17 @@ def find_matching_paren(source, start=0):
     assert source[start] == '('
     pos = start
     open_brackets = 1
+    inside_string = False
     while open_brackets > 0:
         pos += 1
         if len(source) == pos:
             raise LispError("Incomplete expression: %s" % source[start:])
-        if source[pos] == '(':
+        if source[pos] == '(' and not inside_string:
             open_brackets += 1
-        if source[pos] == ')':
+        if source[pos] == ')' and not inside_string:
             open_brackets -= 1
+        if source[pos] == '"' and source[pos - 1] != '\\':
+            inside_string = not inside_string
     return pos
 
 
