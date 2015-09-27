@@ -10,17 +10,55 @@ the workshop. Its job is to convert strings into data structures that the evalua
 understand. 
 """
 
+
 def parse(source):
     """Parse string representation of one *single* expression
     into the corresponding Abstract Syntax Tree."""
 
-    raise NotImplementedError("DIY")
+    source = remove_comments(source).strip()
+    return token_converter(source)
 
-##
-## Below are a few useful utility functions. These should come in handy when 
-## implementing `parse`. We don't want to spend the day implementing parenthesis 
-## counting, after all.
-## 
+
+def token_converter(token):
+    """
+
+    :param token: string token that needs to be converted
+    :return: a list
+    """
+    if token[0] == "'":
+        lst = list(["quote"])
+        lst.append(token_converter(token[1:]))
+        return lst
+    if token == "#f":
+        return False
+    if token == "#t":
+        return True
+    if token.isdigit():
+        return int(token)
+    if token[0] == "(":
+        idx_matching_paren = find_matching_paren(token)
+        print 'Matching paren: ', idx_matching_paren
+        if idx_matching_paren + 1 != len(token):
+            raise LispError("Expected EOF: %s" % token)
+        # Check if it is an empty list
+        if idx_matching_paren == 1:
+            return []
+        else:
+            print 'The token is a list: {}. Recursion is needed.'.format(token)
+            tokens = split_exps(token[1:-1])
+            lst = []
+            for t in tokens:
+                lst.append(token_converter(t))
+            print 'Returned ', lst
+            return lst
+    # The token doesn't need to be transformed
+    return token
+
+#
+# Below are a few useful utility functions. These should come in handy when
+# implementing `parse`. We don't want to spend the day implementing parenthesis
+# counting, after all.
+#
 
 
 def remove_comments(source):
@@ -83,10 +121,10 @@ def first_expression(source):
         atom = source[:end]
         return atom, source[end:]
 
-##
-## The functions below, `parse_multiple` and `unparse` are implemented in order for
-## the REPL to work. Don't worry about them when implementing the language.
-##
+#
+# The functions below, `parse_multiple` and `unparse` are implemented in order for
+# the REPL to work. Don't worry about them when implementing the language.
+#
 
 
 def parse_multiple(source):
