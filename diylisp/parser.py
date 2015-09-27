@@ -37,19 +37,19 @@ def token_converter(token):
         return int(token)
     if token[0] == "(":
         idx_matching_paren = find_matching_paren(token)
-        print 'Matching paren: ', idx_matching_paren
+        # print 'Matching paren: ', idx_matching_paren
         if idx_matching_paren + 1 != len(token):
             raise LispError("Expected EOF: %s" % token)
         # Check if it is an empty list
         if idx_matching_paren == 1:
             return []
         else:
-            print 'The token is a list: {}. Recursion is needed.'.format(token)
+            # print 'The token is a list: {}. Recursion is needed.'.format(token)
             tokens = split_exps(token[1:-1])
             lst = []
             for t in tokens:
                 lst.append(token_converter(t))
-            print 'Returned ', lst
+            # print 'Returned ', lst
             return lst
     # The token doesn't need to be transformed
     return token
