@@ -15,7 +15,9 @@ class LispError(Exception):
 
 class Closure:
     def __init__(self, env, params, body):
-        raise NotImplementedError("DIY")
+        self.env = env if env else Environment()
+        self.params = params if params else []
+        self.body = body if body else []
 
     def __repr__(self):
         return "<closure/%d>" % len(self.params)
@@ -27,7 +29,7 @@ class Environment:
 
     def lookup(self, symbol):
         var = self.bindings.get(symbol, None)
-        if var:
+        if var is not None:
             return var
         raise LispError('Variable %s is not defined.' % symbol)
 
@@ -40,6 +42,9 @@ class Environment:
         if symbol in self.bindings:
             raise LispError('Variable %s already defined.' % symbol)
         self.bindings[symbol] = value
+
+    def __repr__(self):
+        return "<environment: %s>" % self.bindings
 
 
 class String:

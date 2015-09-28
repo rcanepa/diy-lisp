@@ -16,21 +16,33 @@ in a day, after all.)
 
 def evaluate(ast, env):
     """Evaluate an Abstract Syntax Tree in the specified environment."""
-    print ast, env
-    if is_atom(ast) or (is_list(ast) and len(ast) <= 1):
-        if type(ast) is str:
-            return env.lookup(ast)
-        return ast
-    else:  # it should be a list
-        if ast[0] == "if":
-            if evaluate(ast[1], env) is True:
-                return evaluate(ast[2], env)
-            else:
-                return evaluate(ast[3], env)
+    print("Environment %s, AST %s" % (env, ast))
+    # Handle lists
+    if is_list(ast):
+
+        if len(ast) == 0:
+            raise LispError('calling nothing is not allowed')
+
+        if is_closure(ast[0]):
+            if len(ast[1:]) != len(ast[0].params):
+                raise LispError('wrong number of arguments, expected %d got %d' % (len(ast[0].params), len(ast[1:])))
+            # Set parameters to the closure's environment
+            variables = dict()
+            for idx, param in enumerate(ast[1:]):
+                variables[ast[0].params[idx]] = evaluate(param, ast[0].env)
+            ast[0].env = ast[0].env.extend(variables)
+            body_eval = evaluate(ast[0].body, ast[0].env)
+            return body_eval
+
+        elif ast[0] == "if":
+            return evaluate(ast[2], env) if evaluate(ast[1], env) else evaluate(ast[3], env)
+
         elif ast[0] == "quote":
             return evaluate(ast[1], env)
+
         elif ast[0] == "atom":
             return is_atom(evaluate(ast[1], env))
+
         elif ast[0] == "define":
             # Validate the number of arguments
             if len(ast) != 3:
@@ -41,15 +53,21 @@ def evaluate(ast, env):
                 env.set(ast[1], value)
             else:
                 raise LispError('non-symbol')
+
+        elif ast[0] == "lambda":
+            if len(ast) != 3:
+                raise LispError("number of arguments")
+            if not is_list(ast[1]):
+                raise LispError("Parameters should be a list, and you gave %s" % ast[1])
+            return Closure(env, ast[1], ast[2])
+
         elif ast[0] == "eq":
             # left and right sides of the equality test
             left = evaluate(ast[1], env)
             right = evaluate(ast[2], env)
             # list are always different (by definition)
-            if is_list(left) or is_list(right):
-                return False
-            else:
-                return left == right
+            return False if is_list(left) or is_list(right) else left == right
+
         elif type(ast[0]) is str and ast[0] in ["+", "-", "/", "*", "mod", ">", "<"]:
             # left and right side operands of the math operation
             left = evaluate(ast[1], env)
@@ -58,6 +76,20 @@ def evaluate(ast, env):
                 raise LispError("One of the arguments is not a number: %s %s" % (left, right))
             evaluation = eval(str(left) + ast[0].replace("mod", "%") + str(right))
             return evaluation
+
         else:
-            return env.lookup(ast[0])
-            # return ast
+            symbol = evaluate(ast[0], env)
+            if is_closure(symbol):
+                ast[0] = symbol
+                return evaluate(ast, env)
+            raise LispError('not a function')
+
+    # Handle atoms
+    else:
+        if is_boolean(ast) or is_integer(ast):
+            return ast
+        elif type(ast) is str:
+            # Check for closure and evaluate it
+            return env.lookup(ast)
+        else:
+            raise LispError("Unrecognized type %s" % ast)
