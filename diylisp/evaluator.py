@@ -16,15 +16,33 @@ in a day, after all.)
 
 def evaluate(ast, env):
     """Evaluate an Abstract Syntax Tree in the specified environment."""
-    print 'Evaluate ast:', ast, type(ast)
+    print ast, env
     if is_atom(ast) or (is_list(ast) and len(ast) <= 1):
+        if type(ast) is str:
+            return env.lookup(ast)
         return ast
     else:  # it should be a list
-        if ast[0] == "quote":
+        if ast[0] == "if":
+            if evaluate(ast[1], env) is True:
+                return evaluate(ast[2], env)
+            else:
+                return evaluate(ast[3], env)
+        elif ast[0] == "quote":
             return evaluate(ast[1], env)
         elif ast[0] == "atom":
             return is_atom(evaluate(ast[1], env))
+        elif ast[0] == "define":
+            # Validate the number of arguments
+            if len(ast) != 3:
+                raise LispError('Wrong number of arguments. You must pass 2 of them (the variable name and its value).')
+            # Be sure that the variable name is a symbol (not a number or a boolean)
+            if is_symbol(ast[1]):
+                value = evaluate(ast[2], env)
+                env.set(ast[1], value)
+            else:
+                raise LispError('non-symbol')
         elif ast[0] == "eq":
+            # left and right sides of the equality test
             left = evaluate(ast[1], env)
             right = evaluate(ast[2], env)
             # list are always different (by definition)
@@ -33,6 +51,7 @@ def evaluate(ast, env):
             else:
                 return left == right
         elif type(ast[0]) is str and ast[0] in ["+", "-", "/", "*", "mod", ">", "<"]:
+            # left and right side operands of the math operation
             left = evaluate(ast[1], env)
             right = evaluate(ast[2], env)
             if type(left) is str or type(right) is str:  # math operations on integers only
@@ -40,5 +59,5 @@ def evaluate(ast, env):
             evaluation = eval(str(left) + ast[0].replace("mod", "%") + str(right))
             return evaluation
         else:
-            return ast
-
+            return env.lookup(ast[0])
+            # return ast
