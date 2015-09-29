@@ -2,7 +2,80 @@
 
 (define not
     (lambda (b)
-        (if b #f #t)))
+        (if b
+            #f
+            #t)))
 
-;; DIY -- Implement the rest of your standard library
-;; here as part 7 of the workshop.
+(define or
+    (lambda (a b)
+        (if a
+            #t
+            (if b
+                #t
+                #f))))
+
+(define and
+    (lambda (a b)
+        (if a
+            (if b
+                #t
+                #f)
+            #f)))
+
+(define xor
+    (lambda (a b)
+        (if a
+            (if (eq b #f)
+                #t
+                #f)
+            (if b #t #f))))
+
+(define length
+    (lambda (a)
+        (if (empty a)
+            0
+            (+ 1 (length (tail a))))))
+
+(define sum
+    (lambda (a)
+        (if (empty a)
+            0
+            (+ (head a) (sum (tail a))))))
+
+(define range
+    (lambda (a b)
+        (if (<= a b)
+            (cons a (range (+ a 1) b))
+            '())))
+
+(define append
+    (lambda (a b)
+        (if (empty a)
+            b
+            (cons (head a) (append (tail a) b)))))
+        
+(define reverse
+    (lambda (a)
+        (if (empty a)
+            '()
+            (append (reverse (tail a)) (cons (head a) '())))))
+
+(define filter
+    (lambda (fn lst)
+        (if (empty lst)
+            lst
+            (if (fn (head lst))
+                (cons (head lst) (filter fn (tail lst)))
+                (filter fn (tail lst))))))
+
+(define map
+    (lambda (fn lst)
+        (if (empty lst)
+            lst
+            (cons (fn (head lst)) (map fn (tail lst))))))
+
+(define reduce
+    (lambda (fn acc lst)
+        (if (empty lst)
+            acc
+            (reduce fn (fn acc (head lst)) (tail lst)))))

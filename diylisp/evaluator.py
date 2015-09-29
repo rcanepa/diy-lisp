@@ -16,8 +16,9 @@ in a day, after all.)
 
 def evaluate(ast, env):
     """Evaluate an Abstract Syntax Tree in the specified environment."""
-    print("Environment %s, AST %s" % (env, ast))
     # Handle lists
+    # if 'reverse' in env.bindings:
+    #     print ast, env
     if is_list(ast):
 
         if len(ast) == 0:
@@ -29,16 +30,37 @@ def evaluate(ast, env):
             # Set parameters to the closure's environment
             variables = dict()
             for idx, param in enumerate(ast[1:]):
-                variables[ast[0].params[idx]] = evaluate(param, ast[0].env)
-            ast[0].env = ast[0].env.extend(variables)
-            body_eval = evaluate(ast[0].body, ast[0].env)
-            return body_eval
+                variables[ast[0].params[idx]] = evaluate(param, env)
+            call_env = ast[0].env.extend(variables)
+            print("Evaluating:", ast, call_env)
+            return evaluate(ast[0].body, call_env)
+
+        elif ast[0] == "cons":
+            lst = list()
+            lst.append(evaluate(ast[1], env))
+            lst += evaluate(ast[2], env)
+            return lst
+
+        elif ast[0] in ["head", "tail"]:
+            lst = evaluate(ast[1], env)
+            if not is_list(lst):
+                raise LispError('can\'t apply %s on something different than a list' % ast[0])
+            if len(lst) == 0:
+                raise LispError('can\'t apply %s on an empty list' % ast[0])
+            else:
+                return lst[0] if ast[0] == "head" else lst[1:]
+
+        elif ast[0] == "empty":
+            lst = evaluate(ast[1], env)
+            if not is_list(lst):
+                raise LispError('can\'t apply %s on something different than a list' % ast[0])
+            return True if len(lst) == 0 else False
 
         elif ast[0] == "if":
             return evaluate(ast[2], env) if evaluate(ast[1], env) else evaluate(ast[3], env)
 
         elif ast[0] == "quote":
-            return evaluate(ast[1], env)
+            return ast[1]
 
         elif ast[0] == "atom":
             return is_atom(evaluate(ast[1], env))
@@ -68,7 +90,7 @@ def evaluate(ast, env):
             # list are always different (by definition)
             return False if is_list(left) or is_list(right) else left == right
 
-        elif type(ast[0]) is str and ast[0] in ["+", "-", "/", "*", "mod", ">", "<"]:
+        elif type(ast[0]) is str and ast[0] in ["+", "-", "/", "*", "mod", ">", "<", "<=", ">="]:
             # left and right side operands of the math operation
             left = evaluate(ast[1], env)
             right = evaluate(ast[2], env)

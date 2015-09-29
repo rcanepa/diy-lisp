@@ -20,7 +20,7 @@ class Closure:
         self.body = body if body else []
 
     def __repr__(self):
-        return "<closure/%d>" % len(self.params)
+        return "<closure/%s>" % self.params
 
 
 class Environment:
@@ -33,9 +33,10 @@ class Environment:
             return var
         raise LispError('Variable %s is not defined.' % symbol)
 
-    def extend(self, variables):
-        extended = dict(self.bindings)
-        extended.update(variables)
+    def extend(self, variables=None):
+        # extended = dict(self.bindings)
+        extended = self.bindings.copy()
+        extended.update(variables) if variables else extended.update({})
         return Environment(extended)
 
     def set(self, symbol, value):
