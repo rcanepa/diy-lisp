@@ -30,17 +30,19 @@
                 #f)
             (if b #t #f))))
 
+;; List functions
+
 (define length
-    (lambda (a)
-        (if (empty a)
+    (lambda (lst)
+        (if (empty lst)
             0
-            (+ 1 (length (tail a))))))
+            (+ 1 (length (tail lst))))))
 
 (define sum
-    (lambda (a)
-        (if (empty a)
+    (lambda (lst)
+        (if (empty lst)
             0
-            (+ (head a) (sum (tail a))))))
+            (+ (head lst) (sum (tail lst))))))
 
 (define range
     (lambda (a b)
@@ -49,16 +51,16 @@
             '())))
 
 (define append
-    (lambda (a b)
-        (if (empty a)
-            b
-            (cons (head a) (append (tail a) b)))))
+    (lambda (lst1 lst2)
+        (if (empty lst1)
+            lst2
+            (cons (head lst1) (append (tail lst1) lst2)))))
         
 (define reverse
-    (lambda (a)
-        (if (empty a)
+    (lambda (lst)
+        (if (empty lst)
             '()
-            (append (reverse (tail a)) (cons (head a) '())))))
+            (append (reverse (tail lst)) (cons (head lst) '())))))
 
 (define filter
     (lambda (fn lst)
@@ -79,3 +81,37 @@
         (if (empty lst)
             acc
             (reduce fn (fn acc (head lst)) (tail lst)))))
+
+;; list integer integer -> list
+;; consume a list and two integers. return a new list compose of the elements from index p to q
+(define slice
+    (lambda (lst p q)
+        (if (or (empty lst) (eq q (- 0 1)))
+            '()
+            (if (> p 0)
+                (slice (tail lst) (- p 1) (- q 1))
+                (cons (head lst) (slice (tail lst) p (- q 1)))))))
+
+;; Sort (Merge sort)
+
+;; list list -> list
+;; consume two sorted lists and produce a new list merging them and keeping them sort
+(define merge
+    (lambda (lst1 lst2)
+        (if (empty lst1)
+            lst2
+            (if (empty lst2)
+                lst1
+                (if (> (head lst1) (head lst2))
+                    (cons (head lst2) (merge lst1 (tail lst2)))
+                    (cons (head lst1) (merge (tail lst1) lst2)))))))
+
+
+;; list -> list
+;; consume a list and produce a sorted list with the same elements
+(define sort
+    (lambda (lst)
+        (if (<= (length lst) 1)
+            lst
+            (merge (sort (slice lst 0 (- (/ (length lst) 2) 1)))
+                   (sort (slice lst (/ (length lst) 2) (- (length lst) 1)))))))

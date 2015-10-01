@@ -34,7 +34,6 @@ class Environment:
         raise LispError('Variable %s is not defined.' % symbol)
 
     def extend(self, variables=None):
-        # extended = dict(self.bindings)
         extended = self.bindings.copy()
         extended.update(variables) if variables else extended.update({})
         return Environment(extended)
