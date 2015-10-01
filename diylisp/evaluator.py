@@ -46,11 +46,20 @@ def evaluate(ast, env):
         if form == "if":
             return eval_if(ast, env)
 
+        if form == "cond":
+            return eval_cond(ast, env)
+
         if form == "define":
             return eval_define(ast, env)
 
+        if form == "defn":
+            return eval_defn(ast, env)
+
         if form == "lambda":
             return eval_lambda(ast, env)
+
+        if form == "let":
+            return eval_let(ast, env)
 
         if form == "cons":
             return eval_cons(ast, env)
@@ -77,7 +86,7 @@ def evaluate(ast, env):
 
     else:
 
-        if exptype == "number" or exptype == "boolean":
+        if exptype == "number" or exptype == "boolean" or exptype == "string":
             return ast
 
         else:
@@ -106,6 +115,9 @@ def expression_type(exp):
 
         if is_symbol(exp):
             return "symbol"
+
+        if is_string(exp):
+            return "string"
 
         else:
             raise LispError("Unrecognized type {}.".format(exp))
@@ -159,6 +171,21 @@ def eval_define(ast, env):
         raise LispError('The name of the variable is not a symbol.')
 
 
+def eval_defn(ast, env):
+    """
+    Consume a list with a "defn" expression and creates a closure that will be assigned to an
+    environment variable.
+    E.g.: ["defn", "foo", ["x", "y"], ["+", "x", "y"]] -> foo: Closure
+    :param ast: ["defn", string, [], []]
+    :param env: AST Environment
+    :return:    the name of the function
+    """
+    fname = ast[1]
+    closure = eval_lambda(ast[1:], env)
+    env.set(fname, closure)
+    return fname
+
+
 def eval_lambda(ast, env):
     """
     Consume a list with a lambda expression and produce a Closure with the parameters and body
@@ -175,6 +202,34 @@ def eval_lambda(ast, env):
         raise LispError("Parameters should be a list, and you gave {}".format(ast[1]))
 
     return Closure(env, ast[1], ast[2])
+
+
+def eval_let(ast, env):
+    """
+    Consume a list with 3 elements. The first one is the string "let" and the rest must be lists. The
+    first list contains the local binding definitions, and the second list the expression with access to
+    those bindings.
+    E.g.: ["let", [["a", ["+", 100, 20]]], ["+", "a", 5]] -> 125
+    :param ast: ["let", [], []]
+    :param env: AST Environment
+    :return:    result from the expression evaluation
+    """
+    let_env = env.extend({})
+
+    bindings = ast[1]
+
+    print bindings
+
+    args = {}
+    for b in bindings:
+        key = b[0]
+        val = evaluate(b[1], let_env)
+        args[key] = val
+        let_env.set(key, val)
+
+    print args
+
+    return evaluate(ast[2], let_env)
 
 
 def eval_closure(ast, env):
@@ -215,35 +270,52 @@ def eval_math(ast, env):
 def eval_cons(ast, env):
     """
     Consume a list with the first element == "cons" and produce a new list from
-    the concatenation of the first parameter (atom) with the second (list).
+    the concatenation of the first parameter (atom) with the second (list or string).
     Eg.: ["cons", "ABC", [1, 2, 3]] -> ["ABC", 1, 2, 3]
     :param ast: ["cons", ABC, []]
     :param env: AST Environment
     :return:    list
     """
-    lst = list()
-    lst.append(evaluate(ast[1], env))
-    lst += evaluate(ast[2], env)
-    return lst
+
+    item = evaluate(ast[1], env)
+    container = evaluate(ast[2], env)
+
+    if is_list(container):
+        lst = list()
+        lst.append(item)
+        lst += container
+        return lst
+
+    if is_string(container):
+
+        if is_string(item):
+            return String(item.val + container.val)
+
+        else:
+            return String(str(item) + container.val)
+
+    raise LispError("You can't use cons without a list or a string as a second argument: {}".format(ast))
 
 
 def eval_empty(ast, env):
     """
-    Consume a list and return true if the list is empty.
+    Consume a list or String and return true if it is empty.
     E.g.: ["empty", []] -> True
     :param ast: ["empty", []]
     :param env: AST Environment
     :return:    bool
     """
     lst = evaluate(ast[1], env)
-    if not is_list(lst):
-        raise LispError('can\'t apply empty on something different than a list')
-    return True if len(lst) == 0 else False
+
+    if is_list(lst) or is_string(lst):
+        return True if len(lst) == 0 else False
+
+    raise LispError('can\'t apply empty on something different than a list or a string')
 
 
 def eval_head(ast, env):
     """
-    Consume a list and return its first element.
+    Consume a list or String and return its first element.
     E.g.: ["head", [1, 2, 3]] -> 1
     :param ast: ["head", []]
     :param env: AST Environment
@@ -251,19 +323,19 @@ def eval_head(ast, env):
     """
     lst = evaluate(ast[1], env)
 
-    if not is_list(lst):
-        raise LispError('can\'t apply head on something different than a list')
+    if not (is_list(lst) or is_string(lst)):
+        raise LispError('can\'t apply head on something different than a list or a string')
 
     if len(lst) == 0:
-        raise LispError('can\'t apply head on an empty list')
+        raise LispError('can\'t apply head on an empty list or string')
 
     else:
-        return lst[0]
+        return lst[0] if is_list(lst) else String(lst[0])
 
 
 def eval_tail(ast, env):
     """
-    Consume a list and return all of its elements minus the first one.
+    Consume a list or String and return all of its elements minus the first one.
     E.g.: ["tail", [1, 2, 3]] -> [2, 3]
     :param ast: ["tail", []]
     :param env: AST Environment
@@ -271,14 +343,14 @@ def eval_tail(ast, env):
     """
     lst = evaluate(ast[1], env)
 
-    if not is_list(lst):
-        raise LispError('can\'t apply tail on something different than a list')
+    if not (is_list(lst) or is_string(lst)):
+        raise LispError('can\'t apply tail on something different than a list or a string')
 
     if len(lst) == 0:
-        raise LispError('can\'t apply tail on an empty list')
+        raise LispError('can\'t apply tail on an empty list or string')
 
     else:
-        return lst[1:]
+        return lst[1:] if is_list(lst) else String(lst[1:])
 
 
 def eval_quote(ast):
@@ -303,3 +375,35 @@ def eval_if(ast, env):
     :return:    the result of the evaluation of true expr or false expr
     """
     return evaluate(ast[2], env) if evaluate(ast[1], env) else evaluate(ast[3], env)
+
+
+def eval_cond(ast, env):
+    """
+    Consume a list with the first element equal to "cond" and N number of tuples (list with
+    two elements) and return the result of the execution of the condition that get evaluated
+    as true.
+    E.g.: ["cond", [ ["empty", [1, 2, 3]], [1, 2, 3] ] (Example with one condition)
+    :param ast: ["cond", [ [], [] ], [ [], [] ], ..., [ [], [] ]]
+    :param env: AST Environment
+    :return:    the evaluation of the expression associated with a condition evaluated to true
+    """
+
+    predicates = list()
+    expressions = list()
+
+    conditions = ast[1]
+
+    for cond_exp in conditions:
+
+        if not is_list(cond_exp):
+            raise LispError('Every condition must be a tuple (list) of a predicate and a expression.')
+
+        predicates.append(cond_exp[0])
+        expressions.append(cond_exp[1])
+
+    for idx, p in enumerate(predicates):
+
+        if evaluate(p, env):
+            return evaluate(expressions[idx], env)
+
+    return False

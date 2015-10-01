@@ -10,13 +10,31 @@ the workshop. Its job is to convert strings into data structures that the evalua
 understand. 
 """
 
+debug = False
+
 
 def parse(source):
     """Parse string representation of one *single* expression
     into the corresponding Abstract Syntax Tree."""
 
+    global debug
+
+    if source == '(cons "f" "oobar")':
+        debug = True
+
     source = remove_comments(source).strip()
-    return token_converter(source)
+
+    if debug:
+        print source
+
+    tokens = token_converter(source)
+
+    if debug:
+        print tokens
+
+    debug = False
+
+    return tokens
 
 
 def token_converter(token):
@@ -25,32 +43,53 @@ def token_converter(token):
     :param token: string token that needs to be converted
     :return: a list
     """
+
+    global debug
+
     if token[0] == "'":
         lst = list(["quote"])
         lst.append(token_converter(token[1:]))
         return lst
+
     if token == "#f":
         return False
+
     if token == "#t":
         return True
+
     if token.isdigit():
         return int(token)
+
     if token[0] == "(":
         idx_matching_paren = find_matching_paren(token)
-        # print 'Matching paren: ', idx_matching_paren
+
         if idx_matching_paren + 1 != len(token):
             raise LispError("Expected EOF: %s" % token)
+
         # Check if it is an empty list
         if idx_matching_paren == 1:
             return []
+
         else:
-            # print 'The token is a list: {}. Recursion is needed.'.format(token)
+
             tokens = split_exps(token[1:-1])
+
             lst = []
             for t in tokens:
                 lst.append(token_converter(t))
-            # print 'Returned ', lst
+
             return lst
+
+    if token[0] == "\"":
+
+        if token[-1] != "\"":
+            raise LispError("Unclosed string: {}".format(token))
+
+        if re.search(r'([^\\]\")', token[1:-1]):
+            raise LispError("Expected EOF (unescaped double quotes).")
+
+        return String(token[1:-1])
+
     # The token doesn't need to be transformed
     return token
 
@@ -71,16 +110,30 @@ def find_matching_paren(source, start=0):
     the index of the matching closing paren."""
 
     assert source[start] == '('
+    # print source
     pos = start
     open_brackets = 1
+    double_quotes = 0
+
     while open_brackets > 0:
         pos += 1
+
         if len(source) == pos:
             raise LispError("Incomplete expression: %s" % source[start:])
-        if source[pos] == '(':
-            open_brackets += 1
-        if source[pos] == ')':
-            open_brackets -= 1
+
+        # Do not count parenthesis inside strings (surrounded by double quotes) and do not
+        # count a escaped double quote.
+        if source[pos] == "\"" and source[pos - 1] != "\\":
+            double_quotes += 1
+
+        if double_quotes % 2 == 0:
+
+            if source[pos] == '(':
+                open_brackets += 1
+
+            if source[pos] == ')':
+                open_brackets -= 1
+
     return pos
 
 
@@ -95,10 +148,12 @@ def split_exps(source):
     """
 
     rest = source.strip()
+
     exps = []
     while rest:
         exp, rest = first_expression(rest)
         exps.append(exp)
+
     return exps
 
 
@@ -112,14 +167,44 @@ def first_expression(source):
     if source[0] == "'":
         exp, rest = first_expression(source[1:])
         return source[0] + exp, rest
+
     elif source[0] == "(":
         last = find_matching_paren(source)
         return source[:last + 1], source[last + 1:]
+
+    elif source[0] == "\"":
+        double_quotes_end = find_closing_double_quotes(source)
+        atom = source[:double_quotes_end]
+        return atom, source[double_quotes_end:]
+
     else:
         match = re.match(r"^[^\s)(']+", source)
         end = match.end()
         atom = source[:end]
         return atom, source[end:]
+
+
+def find_closing_double_quotes(source):
+    """
+    Consume a string that start with an " and return the position of the
+    next " escaping " \" ".
+
+    Regular expression: "([^"\\]|\\.)*"
+                        Two quotes surrounding zero or more of any character that's not a quote or a backslash
+                        or a backslash followed by any character.
+
+    :param source:  string
+    :return:        integer
+    """
+    assert source[0] == "\""
+
+    match = re.match(r'"([^"\\]|\\.)*"', source)
+
+    if match is None:
+        raise LispError("Incomplete expression, you must finish the string with a double quote: {}".format(source))
+
+    return match.end()
+
 
 #
 # The functions below, `parse_multiple` and `unparse` are implemented in order for
@@ -146,11 +231,15 @@ def unparse(ast):
 
     if is_boolean(ast):
         return "#t" if ast else "#f"
+
     elif is_list(ast):
+
         if len(ast) > 0 and ast[0] == "quote":
             return "'%s" % unparse(ast[1])
+
         else:
             return "(%s)" % " ".join([unparse(x) for x in ast])
+
     else:
         # integers or symbols (or lambdas)
         return str(ast)

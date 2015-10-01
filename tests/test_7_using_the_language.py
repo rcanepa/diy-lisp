@@ -178,7 +178,7 @@ def test_reduce():
     """, env)
 
     # Lets see if we can improve a bit on `sum` while we're at it
-    # assert_equals("10", interpret("(reduce add 0 (range 1 4))", env))
+    assert_equals("10", interpret("(reduce add 0 (range 1 4))", env))
 
 
 # Finally, no stdlib is complete without a sorting algorithm.

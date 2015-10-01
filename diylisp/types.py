@@ -39,8 +39,8 @@ class Environment:
         return Environment(extended)
 
     def set(self, symbol, value):
-        if symbol in self.bindings:
-            raise LispError('Variable %s already defined.' % symbol)
+        # if symbol in self.bindings:
+        #     raise LispError('Variable %s already defined.' % symbol)
         self.bindings[symbol] = value
 
     def __repr__(self):
@@ -62,3 +62,18 @@ class String:
 
     def __eq__(self, other):
         return isinstance(other, String) and other.val == self.val
+
+    def __len__(self):
+        return len(self.val)
+
+    def __getitem__(self, item):
+        return self.val[item]
+
+    def __add__(self, other):
+        if type(other) == str:
+            return String(self.val + other)
+
+        if type(other) == String:
+            return String(self.val + str(other))
+
+        raise TypeError("unsupported operand type(s) for +: 'String' and '{}'".format(type(other)))
