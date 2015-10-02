@@ -99,7 +99,6 @@ def expression_type(exp):
     :param exp: list | number | boolean | symbol | closure
     :return:    string
     """
-
     if is_list(exp):
         return "list"
 
@@ -214,20 +213,11 @@ def eval_let(ast, env):
     :param env: AST Environment
     :return:    result from the expression evaluation
     """
-    let_env = env.extend({})
-
     bindings = ast[1]
 
-    print bindings
-
-    args = {}
-    for b in bindings:
-        key = b[0]
-        val = evaluate(b[1], let_env)
-        args[key] = val
-        let_env.set(key, val)
-
-    print args
+    let_env = env.extend({})
+    for key, val in bindings:
+        let_env = let_env.extend({key: evaluate(val, let_env)})
 
     return evaluate(ast[2], let_env)
 
@@ -240,6 +230,7 @@ def eval_closure(ast, env):
     :return:    the result of the function's body execution
     """
     closure = ast[0]
+
     if len(ast[1:]) != len(closure.params):
         raise LispError('wrong number of arguments, expected %d got %d' % (len(closure.params), len(ast[1:])))
 
@@ -248,8 +239,7 @@ def eval_closure(ast, env):
         args[closure.params[idx]] = evaluate(param, env)
 
     call_env = closure.env.extend(args)
-    body_eval = evaluate(closure.body, call_env)
-    return body_eval
+    return evaluate(closure.body, call_env)
 
 
 def eval_math(ast, env):
@@ -276,7 +266,6 @@ def eval_cons(ast, env):
     :param env: AST Environment
     :return:    list
     """
-
     item = evaluate(ast[1], env)
     container = evaluate(ast[2], env)
 
@@ -387,7 +376,6 @@ def eval_cond(ast, env):
     :param env: AST Environment
     :return:    the evaluation of the expression associated with a condition evaluated to true
     """
-
     predicates = list()
     expressions = list()
 

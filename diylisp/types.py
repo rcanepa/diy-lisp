@@ -14,6 +14,7 @@ class LispError(Exception):
 
 
 class Closure:
+
     def __init__(self, env, params, body):
         self.env = env if env else Environment()
         self.params = params if params else []
@@ -24,13 +25,16 @@ class Closure:
 
 
 class Environment:
+
     def __init__(self, variables=None):
         self.bindings = variables if variables else {}
 
     def lookup(self, symbol):
         var = self.bindings.get(symbol, None)
+
         if var is not None:
             return var
+
         raise LispError('Variable %s is not defined.' % symbol)
 
     def extend(self, variables=None):
@@ -39,8 +43,9 @@ class Environment:
         return Environment(extended)
 
     def set(self, symbol, value):
-        # if symbol in self.bindings:
-        #     raise LispError('Variable %s already defined.' % symbol)
+        if symbol in self.bindings:
+            raise LispError('Variable %s already defined.' % symbol)
+
         self.bindings[symbol] = value
 
     def __repr__(self):
